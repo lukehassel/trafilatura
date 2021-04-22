@@ -177,8 +177,6 @@ def test(tree: Element):
     if tree:
         for sub in tree:
             test(sub)
-    else:
-        print("tree: ", tree.text)
 
 
 def handle_paragraphs(element, potential_tags, dedupbool, config):
@@ -415,7 +413,7 @@ def extract_content(tree, include_tables=False, include_images=False, include_li
         result_body.extend([e for e in
                             [handle_textelem(e, potential_tags, deduplicate, config) for e in subtree.xpath('.//*')]
                             if e is not None])
-        print("content:", etree.tostring(result_body))
+
         # remove trailing titles
         while len(result_body) > 0 and result_body[-1].tag in ('fw', 'headp'): # and result_body[-1].tail is None:
             result_body[-1].getparent().remove(result_body[-1])
@@ -598,7 +596,7 @@ def baseline(filecontent):
 def determine_returnstring(docmeta, output_format, include_formatting, include_links, tei_validation):
     '''Convert XML tree to chosen format, clean the result and output it as a string'''
     # XML (TEI) steps
-    print("test")
+
     if 'xml' in output_format:
         # last cleaning
         for element in docmeta['body'].iter():
@@ -730,7 +728,7 @@ def bare_extraction(filecontent, url=None, no_fallback=False,
         # extract content
         postbody, temp_text, len_text, sure_thing = extract_content(cleaned_tree, include_tables, include_images, include_links, deduplicate, config)
 
-        print("postbody", etree.tostring(postbody))
+
 
         # compare if necessary
         if no_fallback is False:
@@ -779,7 +777,7 @@ def bare_extraction(filecontent, url=None, no_fallback=False,
     else:
         docmeta['raw-text'], docmeta['body'], docmeta['commentsbody'] = temp_text, postbody, commentsbody
 
-    print("clean_tree", etree.tostring(docmeta['body']))
+
     return docmeta
 
 
