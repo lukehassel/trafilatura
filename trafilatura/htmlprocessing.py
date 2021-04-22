@@ -160,11 +160,12 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
     '''Simplify markup and convert relevant HTML tags to an XML standard'''
     # ul/ol → list / li → item
     for elem in tree.iter('ul', 'ol', 'dl'):
-        elem.tag = 'list'
+        #elem.tag = "list"
         for subelem in elem.iter('dd', 'dt', 'li'):
-            subelem.tag = 'item'
+            pass
+            #subelem.tag = 'item'
         for subelem in elem.iter('a'):
-            subelem.tag = 'ref'
+             subelem.tag = 'ref'
     # divs
     for elem in tree.xpath('//div//a'):
         elem.tag = 'ref'
@@ -175,62 +176,60 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
     # images
     if include_images is True:
         for elem in tree.iter('img'):
-            elem.tag = 'graphic'
+            pass
+            #elem.tag = 'asd'
     # delete links for faster processing
     if include_links is False:
         etree.strip_tags(tree, 'a')
     else:
         for elem in tree.iter('a', 'ref'):
-            elem.tag = 'ref'
-            # replace href attribute and delete the rest
+            #elem.tag = 'a'
             for attribute in elem.attrib:
-                if attribute == 'href':
-                    elem.set('target', elem.get('href'))
-                else:
+                if not(attribute == 'href'):
                     del elem.attrib[attribute]
-            #if elem.attrib['href']:
-            #    del elem.attrib['href']
     # head tags + delete attributes
-    for elem in tree.iter('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-        elem.tag = 'head'
+    #for elem in tree.iter('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+    #    elem.tag = 'headhjkhkjh'
     # br → lb
     for elem in tree.iter('br', 'hr'):
         elem.tag = 'lb'
+    #etree.strip_tags(tree, 'strong')
     # wbr
     # blockquote, pre, q → quote
-    for elem in tree.iter('blockquote', 'pre', 'q'):
-        elem.tag = 'quote'
+    # for elem in tree.iter('blockquote', 'pre', 'q'):
+    #     elem.tag = 'quote'
     # include_formatting
-    if include_formatting is False:
-        etree.strip_tags(tree, 'em', 'i', 'b', 'strong', 'u', 'kbd', 'samp', 'tt', 'var', 'sub', 'sup')
-    else:
-        # italics
-        for elem in tree.iter('em', 'i'):
-            elem.tag = 'hi'
-            elem.set('rend', '#i')
-        # bold font
-        for elem in tree.iter('b', 'strong'):
-            elem.tag = 'hi'
-            elem.set('rend', '#b')
-        # u (very rare)
-        for elem in tree.iter('u'):
-            elem.tag = 'hi'
-            elem.set('rend', '#u')
-        # tt (very rare)
-        for elem in tree.iter('kbd', 'samp', 'tt', 'var'):
-            elem.tag = 'hi'
-            elem.set('rend', '#t')
-        # sub and sup (very rare)
-        for elem in tree.iter('sub'):
-            elem.tag = 'hi'
-            elem.set('rend', '#sub')
-        for elem in tree.iter('sup'):
-            elem.tag = 'hi'
-            elem.set('rend', '#sup')
+    # if include_formatting is False:
+        #etree.strip_tags(tree, 'em', 'i', 'b', 'strong', 'u', 'kbd', 'samp', 'tt', 'var', 'sub', 'sup')
+    # else:
+    #     # italics
+    #     for elem in tree.iter('em', 'i'):
+    #         elem.tag = 'hi'
+    #         elem.set('rend', '#i')
+    #     # bold font
+    #     for elem in tree.iter('b', 'strong'):
+    #         elem.tag = 'hi'
+    #         elem.set('rend', '#b')
+    #     # u (very rare)
+    #     for elem in tree.iter('u'):
+    #         elem.tag = 'hi'
+    #         elem.set('rend', '#u')
+    #     # tt (very rare)
+    #     for elem in tree.iter('kbd', 'samp', 'tt', 'var'):
+    #         elem.tag = 'hi'
+    #         elem.set('rend', '#t')
+    #     # sub and sup (very rare)
+    #     for elem in tree.iter('sub'):
+    #         elem.tag = 'hi'
+    #         elem.set('rend', '#sub')
+    #     for elem in tree.iter('sup'):
+    #         elem.tag = 'hi'
+    #         elem.set('rend', '#sup')
     # del | s | strike → <del rend="overstrike">
     for elem in tree.iter('del', 's', 'strike'):
         elem.tag = 'del'
         elem.set('rend', 'overstrike')
+
     return tree
 
 

@@ -13,6 +13,7 @@ import re # import regex as re
 
 from collections import OrderedDict
 from copy import deepcopy
+from xml.etree.ElementTree import Element
 
 from lxml import etree, html
 
@@ -68,8 +69,8 @@ def handle_lists(element, dedupbool, config):
         processed_element.text = element.text
     #if element.tail is not None:
     #    processed_element.tail = element.text
-    for child in element.iter('item'):
-        newchildelem = etree.Element('item')
+    for child in element.iter('dd', 'dt', 'li'):
+        newchildelem = etree.Element(child.tag)
         if len(child) == 0:
             processed_child = process_node(child, dedupbool, config)
             if processed_child is not None:
@@ -134,79 +135,60 @@ def handle_other_elements(element, potential_tags, dedupbool, config):
         LOGGER.warning('unexpected element seen: %s %s', element.tag, element.text)
     return None
 
+def handle_paragraphs2(element, dedupbool, config):
+    '''Process lists elements'''
+    # processed_element = etree.Element(element.tag)
+    # if element.text is not None:
+    #     processed_element.text = element.text
+    # #if element.tail is not None:
+    # #    processed_element.tail = element.text
+    # child = element
+    # newchildelem = etree.Element(child.tag)
+    # for subelem in child.iter():
+    #     processed_subchild = handle_textnode(subelem, comments_fix=False, deduplicate=dedupbool, config=config)
+    #     # add child element to processed_element
+    #     #etree.strip_tags(newchildelem, 'p')
+    #     newsub = etree.Element(subelem.tag)
+    #     # if processed_subchild is not None:
+    #     #     #newsub.text, newsub.tail = processed_subchild.text, processed_subchild.tail
+    #     #     if child.get('target') is not None:
+    #     #         newsub.set('target', child.get('target'))
+    #     #     # shouldn't be here!
+    #     #     elif child.get('href') is not None:
+    #     #         newsub.set('target', child.get('href'))
+    #     processed_element.append(newsub)
+    #     # elif processed_subchild is not None:
+    #     #     #pass
+    #     #     subchildelem = etree.SubElement(newchildelem, processed_subchild.tag)
+    #     #     subchildelem.text, subchildelem.tail = processed_subchild.text, processed_subchild.tail
+    #     subelem.tag = 'done'
+    #     etree.strip_tags(newchildelem, 'item')
+    # if newchildelem.text or len(newchildelem) > 0:
+    #     processed_element.append(newchildelem)
+    #     child.tag = 'done'
+    # # avoid double tags??
+    # if len(processed_element) > 0:  # if it has children
+    #     # test if it has text
+    #     if text_chars_test(''.join(processed_element.itertext())) is True:
+    #         return processed_element
+    return None
+
+def test(tree: Element):
+    if tree:
+        for sub in tree:
+            test(sub)
+    else:
+        print("tree: ", tree.text)
+
 
 def handle_paragraphs(element, potential_tags, dedupbool, config):
     '''Process paragraphs (p) elements along with their children,
        trim and clean the content'''
-    element.attrib.clear()
-    #etree.strip_tags(element, 'p')  # change in precision
-    # no children
-    if len(element) == 0:
-        processed_element = process_node(element, dedupbool, config)  # handle_textnode(element, comments_fix=False)
-        if processed_element is not None:
-            return processed_element
-        return None
-    # children
-    processed_element = etree.Element(element.tag)
-    for child in element.iter():
-        if child.tag not in potential_tags:
-            LOGGER.warning('unexpected in p: %s %s %s', child.tag, child.text, child.tail)
-            continue
-        processed_child = handle_textnode(child, comments_fix=False, deduplicate=dedupbool, config=config)
-        if processed_child is not None:
-            # needing attention!
-            if child.tag == 'p':
-                LOGGER.debug('extra p within p: %s %s %s', child.tag, child.text, child.tail)
-                if processed_element.text:
-                    processed_element.text += ' ' + trim(child.text)
-                else:
-                    processed_element.text = trim(child.text)
-                continue
-            newsub = etree.Element(child.tag)
-            # handle formatting
-            if child.tag in ('hi', 'ref'):
-                # check depth and clean
-                if len(child) > 0:
-                    for item in child:  # children are lists
-                        if text_chars_test(item.text) is True:
-                            item.text = ' ' + item.text
-                        etree.strip_tags(child, item.tag)
-                if child.tag == 'hi':
-                    newsub.set('rend', child.get('rend'))
-                elif child.tag == 'ref':
-                    newsub.text, newsub.tail = processed_child.text, processed_child.tail
-                    if child.get('target') is not None:
-                        newsub.set('target', child.get('target'))
-                    # shouldn't be here!
-                    elif child.get('href') is not None:
-                        newsub.set('target', child.get('href'))
-            # handle line breaks
-            elif child.tag == 'lb':
-                try:
-                    processed_child.tail = process_node(child, dedupbool, config).tail
-                except AttributeError:  # no text
-                    pass
-            # prepare text
-            if text_chars_test(processed_child.text) is False:
-                processed_child.text = ''
-            # if there are already children
-            if len(processed_element) > 0:
-                if text_chars_test(processed_child.tail) is True:
-                    newsub.tail = processed_child.text + processed_child.tail
-                else:
-                    newsub.tail = processed_child.text
-            else:
-                newsub.text, newsub.tail = processed_child.text, processed_child.tail
-            processed_element.append(newsub)
-            child.tag = 'done'
-    # finish
-    if len(processed_element) > 0 or processed_element.text:
-        # clean trailing lb-elements
-        if len(processed_element) > 0 and processed_element[-1].tag == 'lb' and processed_element[-1].tail is None:
-            processed_element[-1].getparent().remove(processed_element[-1])
-        return processed_element
-    LOGGER.debug('discarding p-child: %s', html.tostring(processed_element))
-    return None
+    #element.attrib.clear()
+
+    return element
+
+    #return None
 
 
 def handle_table(table_elem, dedupbool, config):
@@ -306,14 +288,42 @@ def handle_textelem(element, potential_tags, dedupbool, config):
     elif element.tag == 'head':
         new_element = handle_titles(element, dedupbool, config)
     elif element.tag == 'p':
+        #pass
+        #new_element = handle_paragraphs2(element, dedupbool, config)
         new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    #'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+    elif element.tag == 'h1':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'h2':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'h3':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'h4':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'h5':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'h6':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'blockquote':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    #lists
+    elif element.tag == 'ul':
+        new_element = handle_lists(element, dedupbool, config)
+        #new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'ol':
+        new_element = handle_lists(element, dedupbool, config)
+        #new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    elif element.tag == 'li':
+        new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
+    # elif element.tag == 'strong':
+    #     new_element = handle_paragraphs(element, potential_tags, dedupbool, config)
     elif element.tag == 'lb':
         if text_chars_test(element.tail) is True:
             element = process_node(element, dedupbool, config)
             if element is not None:
                 new_element = etree.Element('p')
                 new_element.text = element.tail
-    elif element.tag in ('hi', 'ref', 'span'):
+    elif element.tag in ('hi', 'ref', 'span', 'a'):
         new_element = handle_formatting(element) # process_node(element, dedupbool, config)
     elif element.tag == 'table' and 'table' in potential_tags:
         new_element = handle_table(element, dedupbool, config)
@@ -405,8 +415,9 @@ def extract_content(tree, include_tables=False, include_images=False, include_li
         result_body.extend([e for e in
                             [handle_textelem(e, potential_tags, deduplicate, config) for e in subtree.xpath('.//*')]
                             if e is not None])
+        print("content:", etree.tostring(result_body))
         # remove trailing titles
-        while len(result_body) > 0 and result_body[-1].tag in ('fw', 'head'): # and result_body[-1].tail is None:
+        while len(result_body) > 0 and result_body[-1].tag in ('fw', 'headp'): # and result_body[-1].tail is None:
             result_body[-1].getparent().remove(result_body[-1])
         # exit the loop if the result has children
         if len(result_body) > 1: # try to change this to 0 or 2
@@ -423,6 +434,7 @@ def extract_content(tree, include_tables=False, include_images=False, include_li
     etree.strip_elements(result_body, 'done')
     etree.strip_tags(result_body, 'div')
     # return
+    #print("content:", etree.tostring(result_body))
     return result_body, temp_text, len(temp_text), sure_thing
 
 
@@ -586,6 +598,7 @@ def baseline(filecontent):
 def determine_returnstring(docmeta, output_format, include_formatting, include_links, tei_validation):
     '''Convert XML tree to chosen format, clean the result and output it as a string'''
     # XML (TEI) steps
+    print("test")
     if 'xml' in output_format:
         # last cleaning
         for element in docmeta['body'].iter():
@@ -598,6 +611,18 @@ def determine_returnstring(docmeta, output_format, include_formatting, include_l
             output = build_xml_output(docmeta)
         elif output_format == 'xmltei':
             output = build_tei_output(docmeta)
+        # can be improved
+        returnstring = control_xml_output(output, output_format, tei_validation, docmeta)
+    # HTML steps
+    elif 'html' in output_format:
+        # last cleaning
+        for element in docmeta['body'].iter():
+            if element.tag != 'graphic' and len(element) == 0 and not element.text and not element.tail:
+                parent = element.getparent()
+                if parent is not None:
+                    parent.remove(element)
+        # build output trees
+        output = build_xml_output(docmeta)
         # can be improved
         returnstring = control_xml_output(output, output_format, tei_validation, docmeta)
     # CSV, JSON and TXT output
@@ -685,8 +710,8 @@ def bare_extraction(filecontent, url=None, no_fallback=False,
             if with_metadata is True and any(
                     x is None for x in
                     [docmeta['date'], docmeta['title'], docmeta['url']]
-                ):
-                raise ValueError
+                ):pass
+                #raise ValueError
         else:
             docmeta = dict.fromkeys(METADATA_LIST)
 
@@ -704,6 +729,8 @@ def bare_extraction(filecontent, url=None, no_fallback=False,
 
         # extract content
         postbody, temp_text, len_text, sure_thing = extract_content(cleaned_tree, include_tables, include_images, include_links, deduplicate, config)
+
+        print("postbody", etree.tostring(postbody))
 
         # compare if necessary
         if no_fallback is False:
@@ -751,6 +778,8 @@ def bare_extraction(filecontent, url=None, no_fallback=False,
             docmeta['comments'] = xmltotxt(commentsbody, include_formatting, include_links)
     else:
         docmeta['raw-text'], docmeta['body'], docmeta['commentsbody'] = temp_text, postbody, commentsbody
+
+    print("clean_tree", etree.tostring(docmeta['body']))
     return docmeta
 
 

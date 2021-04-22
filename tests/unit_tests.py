@@ -7,13 +7,10 @@ import logging
 import os
 import sys
 
-from unittest.mock import patch
+from lxml import etree, html
 
 # import pytest
 # https://docs.pytest.org/en/latest/
-
-
-from lxml import etree, html
 
 try:
     import cchardet as chardet
@@ -23,13 +20,15 @@ except ImportError:
 # language detection
 try:
     import cld3
+
     LANGID_FLAG = True
 except ImportError:
     LANGID_FLAG = False
 
 import trafilatura.filters
 import trafilatura.htmlprocessing
-from trafilatura.core import baseline, bare_extraction, extract, handle_formatting, handle_lists, handle_image, handle_paragraphs, handle_quotes, handle_table, handle_textelem, process_record, sanitize_tree, trim
+from trafilatura.core import baseline, bare_extraction, extract, handle_formatting, handle_lists, handle_image, \
+    handle_paragraphs, handle_quotes, handle_table, handle_textelem, process_record, sanitize_tree, trim
 from trafilatura.lru import LRUCache
 from trafilatura.filters import check_html_lang, duplicate_test, textfilter
 from trafilatura.metadata import METADATA_LIST
@@ -39,7 +38,6 @@ from trafilatura import utils, xml
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
-
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 SAMPLE_META = dict.fromkeys(METADATA_LIST)
 
@@ -48,7 +46,7 @@ ZERO_CONFIG['DEFAULT']['MIN_OUTPUT_SIZE'] = '0'
 ZERO_CONFIG['DEFAULT']['MIN_EXTRACTED_SIZE'] = '0'
 
 MOCK_PAGES = {
-'http://exotic_tags': 'exotic_tags.html',
+    'http://exotic_tags': 'exotic_tags.html',
 }
 
 
@@ -104,7 +102,7 @@ def test_input():
     assert utils.load_html(123) is None
     assert utils.load_html('<html><body>ÄÖÜ</body></html>') is not None
     assert utils.load_html(b'<html><body>\x2f\x2e\x9f</body></html>') is not None
-    #assert utils.load_html(b'0'*int(10e3)) is None
+    # assert utils.load_html(b'0'*int(10e3)) is None
     assert extract(None, 'url', '0000', target_language=None) is None
     # legacy
     assert process_record(None, 'url', '0000', target_language=None) is None
@@ -117,7 +115,8 @@ def test_txttocsv():
     mymeta['url'] = 'https://example.org'
     mymeta['hostname'] = 'example.org'
     mymeta['id'] = '1'
-    assert utils.txttocsv('Test text', 'Test comment', mymeta) == '1\thttps://example.org\tNone\texample.org\tTest title\tNone\tTest text\tTest comment\n'
+    assert utils.txttocsv('Test text', 'Test comment',
+                          mymeta) == '1\thttps://example.org\tNone\texample.org\tTest title\tNone\tTest text\tTest comment\n'
     mystring = '<html><body><p>ÄÄÄÄÄÄÄÄÄÄÄÄÄÄ</p></body></html>'
     assert extract(mystring, output_format='csv', config=ZERO_CONFIG) is not None
     assert extract(mystring, output_format='csv', include_comments=False, config=ZERO_CONFIG).endswith('\t\n')
@@ -136,7 +135,8 @@ def test_exotic_tags(xmloutput=False):
     with open(filepath) as f:
         content = etree.fromstring(f.read())
     res = xml.check_tei(content, 'http://dummy')
-    assert etree.tostring(res).startswith(b'<html>\n<text>\n<body>\n<div>\n\n<hi rend="uppercase">Hello</hi>\n<p>Teletype text</p>')
+    assert etree.tostring(res).startswith(
+        b'<html>\n<text>\n<body>\n<div>\n\n<hi rend="uppercase">Hello</hi>\n<p>Teletype text</p>')
     # misformed HTML declaration
     htmlstring = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 2012"http://www.w3.org/TR/html4/loose.dtd"><html><head></head><body><p>ABC</p></body></html>'
     # outputs '012"http://www.w3.org/TR/html4/loose.dtd">\nABC'
@@ -155,7 +155,9 @@ def test_exotic_tags(xmloutput=False):
     element.append(third)
     assert etree.tostring(converted) == b'<p>1st part. 2nd part.</p>'
     # malformed lists (common error)
-    result = etree.tostring(handle_lists(etree.fromstring('<list>Description of the list:<item>List item 1</item><item>List item 2</item><item>List item 3</item></list>'), False, ZERO_CONFIG))
+    result = etree.tostring(handle_lists(etree.fromstring(
+        '<list>Description of the list:<item>List item 1</item><item>List item 2</item><item>List item 3</item></list>'),
+        False, ZERO_CONFIG))
     assert result.count(b'List item') == 3
     assert b"Description" in result
 
@@ -166,26 +168,29 @@ def test_lrucache():
     trafilatura.filters.LRU_TEST = lru_test
     my_body = etree.Element('body')
     ### element too short
-    #my_element = html.fromstring('<p>AAAA BBBB</p>')
-    #my_body.append(my_element)
-    #put_in_cache(my_body)
-    #assert duplicate_test(my_element, DEFAULT_CONFIG) is False
+    # my_element = html.fromstring('<p>AAAA BBBB</p>')
+    # my_body.append(my_element)
+    # put_in_cache(my_body)
+    # assert duplicate_test(my_element, DEFAULT_CONFIG) is False
     ### cached element
-    my_element = html.fromstring('<p>AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB</p>')
+    my_element = html.fromstring(
+        '<p>AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB</p>')
     my_body.append(my_element)
     assert duplicate_test(my_element, DEFAULT_CONFIG) is False
     assert duplicate_test(my_element, DEFAULT_CONFIG) is False
     assert duplicate_test(my_body, DEFAULT_CONFIG) is False
     assert duplicate_test(my_element, DEFAULT_CONFIG) is True
     other_body = etree.Element('body')
-    other_element = html.fromstring('<p>CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD</p>')
+    other_element = html.fromstring(
+        '<p>CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD</p>')
     other_body.append(other_element)
     assert duplicate_test(other_body, DEFAULT_CONFIG) is False
     assert duplicate_test(other_element, DEFAULT_CONFIG) is False
     assert duplicate_test(other_body, DEFAULT_CONFIG) is False
     assert duplicate_test(other_element, DEFAULT_CONFIG) is True
     yet_another_body = etree.Element('body')
-    yet_another_element = html.fromstring('<p>EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF</p>')
+    yet_another_element = html.fromstring(
+        '<p>EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF</p>')
     yet_another_body.append(yet_another_element)
     assert duplicate_test(yet_another_body, DEFAULT_CONFIG) is False
     assert duplicate_test(yet_another_body, DEFAULT_CONFIG) is False
@@ -209,7 +214,8 @@ def test_formatting():
     my_result = extract(my_document, output_format='xml', include_formatting=True, config=ZERO_CONFIG)
     assert '<hi rend="#b">This here is in bold font.</hi>' in my_result
     # nested
-    my_document = html.fromstring('<html><body><p><b>This here is in bold and <i>italic</i> font.</b></p></body></html>')
+    my_document = html.fromstring(
+        '<html><body><p><b>This here is in bold and <i>italic</i> font.</b></p></body></html>')
     my_result = extract(my_document, output_format='xml', include_formatting=True, config=ZERO_CONFIG)
     assert '<hi rend="#b">This here is in bold and italic font.</hi>' in my_result
     # empty
@@ -245,7 +251,7 @@ def test_baseline():
     _, length, string = baseline('')
     assert (length, string) == (0, '')
     my_document = '<html><body><script type="application/ld+json">{"description":"In letzter Zeit kam man am Begriff \"Hygge\", was so viel wie \"angenehm\" oder \"gemütlich\" bedeutet, ja nicht vorbei. Jetzt macht ihm ein neuer Glücks-Trend ...","image":[{"name":"Mit der Ikigai-Methode wirst du glücklicher","url":"https:\/\/image.brigitte.de\/10973004\/uncropped-0-0\/7d00b2658fd0a3b19e1b161f4657cc20\/Xw\/ikigai--1-.jpg","width":"2048","height":"1366","@type":"ImageObject"},{"name":"Mit der Ikigai-Methode wirst du glücklicher","url":"https:\/\/image.brigitte.de\/10973004\/16x9-1280-720\/bf947c7c24167d7c0adae0be10942d57\/Uf\/ikigai--1-.jpg","width":"1280","height":"720","@type":"ImageObject"},{"name":"Mit der Ikigai-Methode wirst du glücklicher","url":"https:\/\/image.brigitte.de\/10973004\/16x9-938-528\/bf947c7c24167d7c0adae0be10942d57\/JK\/ikigai--1-.jpg","width":"938","height":"528","@type":"ImageObject"},{"name":"Mit der Ikigai-Methode wirst du glücklicher","url":"https:\/\/image.brigitte.de\/10973004\/large1x1-622-622\/f5544b7d67e1be04f7729b130e7e0485\/KN\/ikigai--1-.jpg","width":"622","height":"622","@type":"ImageObject"}],"mainEntityOfPage":{"@id":"https:\/\/www.brigitte.de\/liebe\/persoenlichkeit\/ikigai-macht-dich-sofort-gluecklicher--10972896.html","@type":"WebPage"},"headline":"Ikigai macht dich sofort glücklicher!","datePublished":"2019-06-19T14:29:08+0000","dateModified":"2019-06-19T14:29:10+0000","author":{"name":"BRIGITTE.de","@type":"Organization"},"publisher":{"name":"BRIGITTE.de","logo":{"url":"https:\/\/image.brigitte.de\/11476842\/uncropped-0-0\/f19537e97b9189bf0f25ce924168bedb\/kK\/bri-logo-schema-org.png","width":"167","height":"60","@type":"ImageObject"},"@type":"Organization"},"articleBody":"In letzter Zeit kam man am Begriff \"Hygge\" (\"gemütlich\" oder \"angenehm\") nicht vorbei. Jetzt macht ihm ein neuer Glücks-Trend Konkurrenz: \"Ikigai\". Bist du glücklich? Schwierige Frage, nicht wahr? Viele von uns müssen da erst mal überlegen.","@type":"NewsArticle"}</script></body></html>'
-    _, result, _  = baseline(my_document)
+    _, result, _ = baseline(my_document)
     assert result.startswith('In letzter Zeit kam man') and result.endswith('erst mal überlegen.')
     my_document = '<html><body><article><b>The article consists of this text.</b></article></body></html>'
     _, result, _ = baseline(my_document)
@@ -262,25 +268,28 @@ def test_filters():
         assert trafilatura.filters.language_filter('Hier ist ein Text auf Deutsch', '', 'de', SAMPLE_META) is False
         assert trafilatura.filters.language_filter('Hier ist ein Text auf Deutsch', '', 'en', SAMPLE_META) is True
         # comments
-        assert trafilatura.filters.language_filter('Hier ist ein Text.', 'Die Kommentare sind aber etwas länger.', 'de', SAMPLE_META) is False
+        assert trafilatura.filters.language_filter('Hier ist ein Text.', 'Die Kommentare sind aber etwas länger.', 'de',
+                                                   SAMPLE_META) is False
     else:
         # no detection
         assert trafilatura.filters.language_filter('Hier ist ein Text.', '', 'en', SAMPLE_META) is False
     # test URL blacklist
-    assert trafilatura.extract('<html><head><link rel="canonical" href="https://example.org"/></head><body></body></html>', output_format='xml', url_blacklist={'https://example.org'}) is None
+    assert trafilatura.extract(
+        '<html><head><link rel="canonical" href="https://example.org"/></head><body></body></html>',
+        output_format='xml', url_blacklist={'https://example.org'}) is None
     ## recursion limit
     my_p = '<p>abc</p>'
-    doc = html.fromstring('<html><body>' + my_p*50 + '</body></html>')
+    doc = html.fromstring('<html><body>' + my_p * 50 + '</body></html>')
     assert extract(doc, max_tree_size=500) is not None
-    doc = html.fromstring('<html><body>' + my_p*501 + '</body></html>')
+    doc = html.fromstring('<html><body>' + my_p * 501 + '</body></html>')
     assert extract(doc, max_tree_size=500) is None
     my_p = '<p><hi rend="#i">abc</hi></p>'
-    doc = html.fromstring('<html><body>' + my_p*501 + '</body></html>')
+    doc = html.fromstring('<html><body>' + my_p * 501 + '</body></html>')
     assert extract(doc, include_formatting=True, max_tree_size=500) is None
-    doc = html.fromstring('<html><body>' + my_p*499 + '</body></html>')
+    doc = html.fromstring('<html><body>' + my_p * 499 + '</body></html>')
     assert extract(doc, include_formatting=True, max_tree_size=500) is not None
     ## deduplication
-    doc = html.fromstring('<html><body>' + my_p*50 + '</body></html>')
+    doc = html.fromstring('<html><body>' + my_p * 50 + '</body></html>')
     lru_test = LRUCache(maxsize=2)
     trafilatura.filters.LRU_TEST = lru_test
     assert extract(doc, deduplicate=True) is not None
@@ -289,12 +298,19 @@ def test_filters():
     assert extract(doc, deduplicate=True) is None
     # HTML lang filter
     my_p = '<p>In sleep a king, but waking no such matter.</p>'
-    assert extract(html.fromstring('<html lang="en-US"><body>' + my_p*50 + '</body></html>'), target_language='en') is not None
-    assert extract(html.fromstring('<html lang="en-US"><body>' + my_p*50 + '</body></html>'), target_language='de') is None
-    assert check_html_lang(html.fromstring('<html lang="de_DE, en_US"><body></body></html>'), target_language='de') is True
+    assert extract(html.fromstring('<html lang="en-US"><body>' + my_p * 50 + '</body></html>'),
+                   target_language='en') is not None
+    assert extract(html.fromstring('<html lang="en-US"><body>' + my_p * 50 + '</body></html>'),
+                   target_language='de') is None
+    assert check_html_lang(html.fromstring('<html lang="de_DE, en_US"><body></body></html>'),
+                           target_language='de') is True
     assert check_html_lang(html.fromstring('<html lang="en"><body></body></html>'), target_language='it') is False
-    assert check_html_lang(html.fromstring('<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>'), target_language='en') is True
-    assert check_html_lang(html.fromstring('<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>'), target_language='de') is False
+    assert check_html_lang(
+        html.fromstring('<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>'),
+        target_language='en') is True
+    assert check_html_lang(
+        html.fromstring('<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>'),
+        target_language='de') is False
 
 
 def test_external():
@@ -312,7 +328,7 @@ def test_external():
     assert len(mytree) == 1
     # test langid
     if LANGID_FLAG is True:
-        doc = html.fromstring('<html><body>' + '<p>Non è inglese.</p>'*20 + '</body></html>')
+        doc = html.fromstring('<html><body>' + '<p>Non è inglese.</p>' * 20 + '</body></html>')
         assert extract(doc, no_fallback=False, target_language='en', deduplicate=False) is None
 
 
@@ -329,15 +345,20 @@ def test_images():
         teststring = f.read()
     assert 'test.jpg Example image' not in extract(teststring)
     assert 'test.jpg Example image' in extract(teststring, include_images=True, no_fallback=True)
-    assert '<graphic src="test.jpg" title="Example image"/>' in extract(teststring, include_images=True, no_fallback=True, output_format='xml', config=ZERO_CONFIG)
+    assert '<graphic src="test.jpg" title="Example image"/>' in extract(teststring, include_images=True,
+                                                                        no_fallback=True, output_format='xml',
+                                                                        config=ZERO_CONFIG)
     # CNN example
-    mydoc = html.fromstring('<img class="media__image media__image--responsive" alt="Harry and Meghan last March, in their final royal engagement." data-src-mini="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-169.jpg" data-src-xsmall="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-medium-plus-169.jpg" data-src-small="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-large-169.jpg" data-src-medium="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-src-large="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-super-169.jpg" data-src-full16x9="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-full-169.jpg" data-src-mini1x1="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-11.jpg" data-demand-load="loaded" data-eq-pts="mini: 0, xsmall: 221, small: 308, medium: 461, large: 781" src="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-eq-state="mini xsmall small medium" data-src="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg">')
+    mydoc = html.fromstring(
+        '<img class="media__image media__image--responsive" alt="Harry and Meghan last March, in their final royal engagement." data-src-mini="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-169.jpg" data-src-xsmall="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-medium-plus-169.jpg" data-src-small="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-large-169.jpg" data-src-medium="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-src-large="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-super-169.jpg" data-src-full16x9="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-full-169.jpg" data-src-mini1x1="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-11.jpg" data-demand-load="loaded" data-eq-pts="mini: 0, xsmall: 221, small: 308, medium: 461, large: 781" src="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-eq-state="mini xsmall small medium" data-src="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg">')
     myimage = handle_image(mydoc)
     assert myimage is not None and 'alt' in myimage.attrib and 'src' in myimage.attrib
     # modified CNN example
-    mydoc = html.fromstring('<img class="media__image media__image--responsive" alt="Harry and Meghan last March, in their final royal engagement." data-src-mini="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-169.jpg" data-src-xsmall="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-medium-plus-169.jpg" data-src-small="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-large-169.jpg" data-src-medium="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-src-large="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-super-169.jpg" data-src-full16x9="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-full-169.jpg" data-src-mini1x1="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-11.jpg" data-demand-load="loaded" data-eq-pts="mini: 0, xsmall: 221, small: 308, medium: 461, large: 781">')
+    mydoc = html.fromstring(
+        '<img class="media__image media__image--responsive" alt="Harry and Meghan last March, in their final royal engagement." data-src-mini="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-169.jpg" data-src-xsmall="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-medium-plus-169.jpg" data-src-small="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-large-169.jpg" data-src-medium="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-src-large="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-super-169.jpg" data-src-full16x9="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-full-169.jpg" data-src-mini1x1="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-11.jpg" data-demand-load="loaded" data-eq-pts="mini: 0, xsmall: 221, small: 308, medium: 461, large: 781">')
     myimage = handle_image(mydoc)
-    assert myimage is not None and 'alt' in myimage.attrib and 'src' in myimage.attrib and myimage.get('src').startswith('http')
+    assert myimage is not None and 'alt' in myimage.attrib and 'src' in myimage.attrib and myimage.get(
+        'src').startswith('http')
 
 
 def test_links():
@@ -352,7 +373,8 @@ def test_links():
         teststring = f.read()
     assert 'testlink.html' not in extract(teststring, config=ZERO_CONFIG)
     assert '[link](testlink.html)' in extract(teststring, include_links=True, no_fallback=True, config=ZERO_CONFIG)
-    assert '<ref target="testlink.html">link</ref>' in extract(teststring, include_links=True, no_fallback=True, output_format='xml', config=ZERO_CONFIG)
+    assert '<ref target="testlink.html">link</ref>' in extract(teststring, include_links=True, no_fallback=True,
+                                                               output_format='xml', config=ZERO_CONFIG)
 
 
 def test_tei():
@@ -374,7 +396,8 @@ def test_tei():
     assert result is not None
     assert xml.validate_tei(etree.fromstring(result)) is True
     # include ID in metadata
-    result = extract(teststring, "mocked", no_fallback=True, output_format='xmltei', tei_validation=False, record_id='0001')
+    result = extract(teststring, "mocked", no_fallback=True, output_format='xmltei', tei_validation=False,
+                     record_id='0001')
     assert result is not None
     assert xml.validate_tei(etree.fromstring(result)) is True
 
@@ -383,9 +406,12 @@ def test_htmlprocessing():
     '''test html-related functions'''
     assert trafilatura.htmlprocessing.tree_cleaning(etree.Element('html'), True) is not None
     assert trafilatura.htmlprocessing.prune_html(etree.Element('unwanted')) is not None
-    mydoc = html.fromstring('<html><body><table><a href="">Link</a></table><img src="test.jpg"/><u>Underlined</u><tt>True Type</tt><sub>Text</sub><sup>Text</sup></body></html>')
-    myconverted = trafilatura.htmlprocessing.convert_tags(mydoc, include_formatting=True, include_tables=True, include_images=True)
-    assert myconverted.xpath('.//ref') and myconverted.xpath('.//graphic') and myconverted.xpath('.//hi[@rend="#t"]') and myconverted.xpath('.//table')
+    mydoc = html.fromstring(
+        '<html><body><table><a href="">Link</a></table><img src="test.jpg"/><u>Underlined</u><tt>True Type</tt><sub>Text</sub><sup>Text</sup></body></html>')
+    myconverted = trafilatura.htmlprocessing.convert_tags(mydoc, include_formatting=True, include_tables=True,
+                                                          include_images=True)
+    assert myconverted.xpath('.//ref') and myconverted.xpath('.//graphic') and myconverted.xpath(
+        './/hi[@rend="#t"]') and myconverted.xpath('.//table')
     myconverted = trafilatura.htmlprocessing.tree_cleaning(mydoc, include_tables=False, include_images=True)
     assert myconverted.xpath('.//graphic') and not myconverted.xpath('.//table')
 
@@ -398,18 +424,43 @@ def test_fetch():
     assert utils.fetch_url('https://expired.badssl.com/', no_ssl=True) is not None
 
 
+import trafilatura
+
+
+def test_html():
+    import requests
+    import xml.dom.minidom
+    import logging
+    #logging.getLogger("trafilatura").setLevel(logging.FATAL)
+
+    #response = requests.get("https://devmuaz.medium.com/flutter-clean-architecture-series-part-1-d2d4c2e75c47")
+    response = requests.get("https://www.gesetze-im-internet.de/eakav/xml.zip")
+    #response = requests.get("https://medium.com/the-mission/how-to-make-quantum-leaps-personally-and-professionally-f6b3b6654b78")
+
+    result = trafilatura.extract(response.text, include_formatting=True, with_metadata=True, output_format="html",
+                                 include_images=True, include_links=True)
+    #print(result)
+
+    dom = xml.dom.minidom.parseString(result)
+    pretty_xml_as_string = dom.toprettyxml()
+    print(pretty_xml_as_string)
+
+
 if __name__ == '__main__':
-    test_trim()
-    test_lrucache()
-    test_input()
-    test_formatting()
-    test_exotic_tags()
-    test_images()
-    test_links()
-    test_htmlprocessing()
-    test_filters()
-    test_baseline()
-    test_txttocsv()
-    test_external()
-    test_fetch()
-    test_tei()
+    test_html()
+
+# if __name__ == '__main__':
+#     test_trim()
+#     test_lrucache()
+#     test_input()
+#     test_formatting()
+#     test_exotic_tags()
+#     test_images()
+#     test_links()
+#     test_htmlprocessing()
+#     test_filters()
+#     test_baseline()
+#     test_txttocsv()
+#     test_external()
+#     test_fetch()
+#     test_tei()
