@@ -35,8 +35,10 @@ HTML_CLEANER.remove_unknown_tags = False
 HTML_CLEANER.safe_attrs_only = False
 HTML_CLEANER.scripts = False
 HTML_CLEANER.style = False
-#HTML_CLEANER.remove_tags = MANUALLY_STRIPPED
-#HTML_CLEANER.kill_tags = MANUALLY_CLEANED
+
+
+# HTML_CLEANER.remove_tags = MANUALLY_STRIPPED
+# HTML_CLEANER.kill_tags = MANUALLY_CLEANED
 
 
 def tree_cleaning(tree, include_tables, include_images=False):
@@ -50,12 +52,12 @@ def tree_cleaning(tree, include_tables, include_images=False):
         # Many websites have <img> inside <figure> or <picture> or <source> tag
         cleaning_list = [e for e in cleaning_list if e
                          not in ('figure', 'picture', 'source')]
-        stripping_list.remove('img')
+        #stripping_list.remove('img')
     # delete targeted elements
     for expression in cleaning_list:
         for element in tree.getiterator(expression):
             try:
-                element.drop_tree() # faster when applicable
+                element.drop_tree()  # faster when applicable
             except AttributeError:
                 element.getparent().remove(element)
     HTML_CLEANER.kill_tags, HTML_CLEANER.remove_tags = cleaning_list, stripping_list
@@ -117,7 +119,7 @@ def link_density_test(element):
         else:
             if element.getnext() is None:
                 limitlen, threshold = 200, 0.66
-            #elif re.search(r'[.?!]', elemtext):
+            # elif re.search(r'[.?!]', elemtext):
             #    limitlen, threshold = 150, 0.66
             else:
                 limitlen, threshold = 100, 0.66
@@ -125,12 +127,13 @@ def link_density_test(element):
             linklen, elemnum, shortelems, mylist = collect_link_info(links_xpath)
             if elemnum == 0:
                 return True, mylist
-            #if len(set(mylist))/len(mylist) <= 0.5:
+            # if len(set(mylist))/len(mylist) <= 0.5:
             #    return True, mylist
-            LOGGER.debug('list link text/total: %s/%s – short elems/total: %s/%s', linklen, elemlen, shortelems, elemnum)
-            if linklen >= threshold*elemlen or shortelems/elemnum >= threshold:
+            LOGGER.debug('list link text/total: %s/%s – short elems/total: %s/%s', linklen, elemlen, shortelems,
+                         elemnum)
+            if linklen >= threshold * elemlen or shortelems / elemnum >= threshold:
                 return True, mylist
-            #print(mylist)
+            # print(mylist)
     return False, mylist
 
 
@@ -145,11 +148,11 @@ def link_density_test_tables(element):
             linklen, elemnum, shortelems, _ = collect_link_info(links_xpath)
             if elemnum == 0:
                 return True
-            #if len(set(mylist))/len(mylist) <= 0.5:
+            # if len(set(mylist))/len(mylist) <= 0.5:
             #    return True
             LOGGER.debug('table link text: %s / total: %s', linklen, elemlen)
-            if (elemlen < 1000 and linklen > 0.8*elemlen) or (elemlen > 1000 and linklen > 0.5*elemlen):
-            #if linklen > 0.5 * elemlen:
+            if (elemlen < 1000 and linklen > 0.8 * elemlen) or (elemlen > 1000 and linklen > 0.5 * elemlen):
+                # if linklen > 0.5 * elemlen:
                 return True
             if shortelems > len(links_xpath) * 0.66:
                 return True
@@ -160,47 +163,56 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
     '''Simplify markup and convert relevant HTML tags to an XML standard'''
     # ul/ol → list / li → item
     for elem in tree.iter('ul', 'ol', 'dl'):
-        #elem.tag = "list"
+        # elem.tag = "list"
         for subelem in elem.iter('dd', 'dt', 'li'):
             pass
-            #subelem.tag = 'item'
-        for subelem in elem.iter('a'):
-             subelem.tag = 'ref'
+            # subelem.tag = 'item'
+        # for subelem in elem.iter('a'):
+        #      subelem.tag = 'ref'
     # divs
-    for elem in tree.xpath('//div//a'):
-        elem.tag = 'ref'
+    # for elem in tree.xpath('//div//a'):
+    #     elem.tag = 'ref'
     # tables
     if include_tables is True:
-        for elem in tree.xpath('//table//a'):
-            elem.tag = 'ref'
+        pass
+        # for elem in tree.xpath('//table//a'):
+        #     elem.tag = 'ref'
     # images
     if include_images is True:
         for elem in tree.iter('img'):
-            pass
-            #elem.tag = 'asd'
+            elem.tag = 'img'
+            # if int(elem.attrib['width']) > 100 and int(elem.attrib['height']) > 100:
+            #     elem.tag = 'graphic'
+            for attribute in elem.attrib:
+                if not (attribute == 'src'):
+                    del elem.attrib[attribute]
     # delete links for faster processing
     if include_links is False:
         etree.strip_tags(tree, 'a')
     else:
         for elem in tree.iter('a', 'ref'):
-            #elem.tag = 'a'
+            # elem.tag = 'a'
             for attribute in elem.attrib:
-                if not(attribute == 'href'):
+                if not (attribute == 'href'):
                     del elem.attrib[attribute]
     # head tags + delete attributes
-    #for elem in tree.iter('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+    # for elem in tree.iter('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
     #    elem.tag = 'headhjkhkjh'
     # br → lb
-    for elem in tree.iter('br', 'hr'):
-        elem.tag = 'lb'
-    #etree.strip_tags(tree, 'strong')
+    # for elem in tree.iter('br', 'hr'):
+    #     elem.tag = 'lb'
+    # etree.strip_tags(tree, 'strong')
     # wbr
     # blockquote, pre, q → quote
-    # for elem in tree.iter('blockquote', 'pre', 'q'):
-    #     elem.tag = 'quote'
+    for elem in tree.iter('pre'):
+        elem.tag = 'pre'
+    for elem in tree.iter('q'):
+        elem.tag = 'q'
+    for elem in tree.iter('blockquote'):
+        elem.tag = 'blockquote'
     # include_formatting
     # if include_formatting is False:
-        #etree.strip_tags(tree, 'em', 'i', 'b', 'strong', 'u', 'kbd', 'samp', 'tt', 'var', 'sub', 'sup')
+    # etree.strip_tags(tree, 'em', 'i', 'b', 'strong', 'u', 'kbd', 'samp', 'tt', 'var', 'sub', 'sup')
     # else:
     #     # italics
     #     for elem in tree.iter('em', 'i'):

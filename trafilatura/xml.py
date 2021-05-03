@@ -22,7 +22,7 @@ from .utils import sanitize
 LOGGER = logging.getLogger(__name__)
 # validation
 TEI_SCHEMA = str(Path(__file__).parent / 'data/tei-schema.pickle')
-TEI_VALID_TAGS = {'body', 'cell', 'code', 'del', 'div', 'fw', 'graphic', 'head', 'hi', \
+TEI_VALID_TAGS = {'body', 'cell', 'code', 'del', 'div', 'fw', 'graphic', 'img', 'head', 'hi', \
                   'item', 'lb', 'list', 'p', 'quote', 'ref', 'row', 'table'}
 TEI_VALID_ATTRS = {'rend', 'rendition', 'role', 'target', 'type'}
 TEI_RELAXNG = None # to be downloaded later if necessary
@@ -51,7 +51,7 @@ def build_json_output(docmeta):
 def clean_attributes(tree):
     '''Remove unnecessary attributes'''
     for elem in tree.iter():
-        if elem.tag not in ('del', 'graphic', 'hi', 'ref'):
+        if elem.tag not in ('del', 'graphic', 'img', 'hi', 'a'):
             elem.attrib.clear()
     return tree
 
@@ -227,15 +227,15 @@ def xmltotxt(xmloutput, include_formatting, include_links):
     for element in xmloutput.iter():
         # process text
         if element.text is None and element.tail is None:
-            if element.tag == 'graphic':
-                returnlist.extend(['\n', element.get('src')])
-                if element.get('alt') is not None:
-                    returnlist.extend([' ', element.get('alt')])
-                if element.get('title') is not None:
-                    returnlist.extend([' ', element.get('title')])
+            # if element.tag == 'graphic':
+            #     returnlist.extend(['\n', element.get('src')])
+            #     if element.get('alt') is not None:
+            #         returnlist.extend([' ', element.get('alt')])
+            #     if element.get('title') is not None:
+            #         returnlist.extend([' ', element.get('title')])
             # newlines for textless elements
-            if element.tag in ('graphic', 'row', 'table'):
-                returnlist.append('\n')
+            # if element.tag in ('graphic', 'row', 'table', 'img'):
+            #     returnlist.append('\n')
             continue
         textelement = replace_element_text(element, include_formatting, include_links)
         if element.tag in TEXTELEMS:

@@ -26,7 +26,7 @@ from .xml import TEI_VALID_TAGS
 
 LOGGER = logging.getLogger(__name__)
 
-SANITIZED_XPATH = '//aside|//audio|//button|//fieldset|//figure|//footer|//iframe|//img|//image|//input|//label|//link|//nav|//noindex|//noscript|//object|//option|//select|//source|//svg|//time'
+SANITIZED_XPATH = '//aside|//audio|//button|//fieldset|//figure|//footer|//iframe|//image|//input|//label|//link|//nav|//noindex|//noscript|//object|//option|//select|//source|//svg|//time'
 SANITIZED_XPATH_WITH_IMAGES = '//aside|//audio|//button|//fieldset|//figure|//footer|//iframe|//input|//label|//link|//nav|//noindex|//noscript|//object|//option|//select|//source|//svg|//time'
 
 

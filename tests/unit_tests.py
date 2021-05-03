@@ -434,8 +434,8 @@ def test_html():
     #logging.getLogger("trafilatura").setLevel(logging.FATAL)
 
     #response = requests.get("https://devmuaz.medium.com/flutter-clean-architecture-series-part-1-d2d4c2e75c47")
-    response = requests.get("https://www.gesetze-im-internet.de/eakav/xml.zip")
-    #response = requests.get("https://medium.com/the-mission/how-to-make-quantum-leaps-personally-and-professionally-f6b3b6654b78")
+    #response = requests.get("https://www.theguardian.com/environment/2021/apr/28/speed-at-which-worlds-glaciers-are-melting-has-doubled-in-20-years")
+    response = requests.get("https://dmitryelj.medium.com/howto-using-a-pager-in-the-21st-century-6a57454ecde8")
 
     result = trafilatura.extract(response.text, include_formatting=True, with_metadata=True, output_format="html",
                                  include_images=True, include_links=True)
