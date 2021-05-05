@@ -52,7 +52,7 @@ def tree_cleaning(tree, include_tables, include_images=False):
         # Many websites have <img> inside <figure> or <picture> or <source> tag
         cleaning_list = [e for e in cleaning_list if e
                          not in ('figure', 'picture', 'source')]
-        #stripping_list.remove('img')
+        # stripping_list.remove('img')
     # delete targeted elements
     for expression in cleaning_list:
         for element in tree.getiterator(expression):
@@ -180,12 +180,15 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
     # images
     if include_images is True:
         for elem in tree.iter('img'):
-            elem.tag = 'img'
-            # if int(elem.attrib['width']) > 100 and int(elem.attrib['height']) > 100:
-            #     elem.tag = 'graphic'
-            for attribute in elem.attrib:
-                if not (attribute == 'src'):
-                    del elem.attrib[attribute]
+            if 'src' in elem.attrib:
+                if int(elem.attrib['width']) > 100 and int(elem.attrib['height']) > 100:
+                    for attribute in elem.attrib:
+                        if not (attribute == 'src'):
+                            del elem.attrib[attribute]
+                else:
+                    elem.tag = "this_will_be_deleted"
+            else:
+                elem.tag = "this_will_be_deleted"
     # delete links for faster processing
     if include_links is False:
         etree.strip_tags(tree, 'a')
